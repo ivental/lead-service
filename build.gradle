@@ -1,0 +1,216 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'checkstyle'
+    id 'jacoco'
+    id 'com.diffplug.spotless' version '8.4.0'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.1.0'
+}
+
+group = 'ru.mentee.power.crm'
+version = '1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    // Версии зависимостей
+    lombokVersion = '1.18.42'
+    mapstructVersion = '1.6.3'
+    lombokMapstructBindingVersion = '0.2.0'
+    resilience4jVersion = '2.2.0'
+    springdocVersion = '2.8.3'
+    openapiNullableVersion = '0.2.10'
+    wiremockVersion = '3.13.2'
+    testcontainersVersion = '1.19.3'
+    springCloudVersion = '2024.0.1'
+}
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+dependencies {
+    // ---- Spring Boot Starters ----
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // ---- Spring Cloud (Feign) ----
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // ---- Lombok + MapStruct ----
+    // Lombok для автогенерации геттеров/сеттеров
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    // lombok-mapstruct-binding - Мост между Lombok и MapStruct
+    implementation "org.projectlombok:lombok-mapstruct-binding:${lombokMapstructBindingVersion}"
+    // MapStruct (должен быть после Lombok в annotationProcessor)
+    implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+
+    // ---- Database ----
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.liquibase:liquibase-core'
+
+    // ---- OpenAPI / Swagger ----
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
+    implementation "org.openapitools:jackson-databind-nullable:${openapiNullableVersion}"
+
+    // ---- Resilience4j ----
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
+    implementation "io.github.resilience4j:resilience4j-feign:${resilience4jVersion}"
+
+    // crm-platform-component (future)
+    //implementation 'ru.mentee.power.crm:crm-platform-component:0.1.0'
+
+    // ---- Test ----
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation "org.testcontainers:testcontainers:${testcontainersVersion}"
+    testImplementation "org.testcontainers:postgresql"
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+}
+
+// ---- OpenAPI Generator ----
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec = "${projectDir}/src/main/resources/api/openapi-v1.yaml"
+    outputDir = "${buildDir}/generated/openapi"
+    apiPackage = "ru.mentee.power.crm.contactservice.adapter.out.client.api"
+    modelPackage = "ru.mentee.power.crm.contactservice.adapter.out.client.model"
+    configOptions = [
+            interfaceOnly         : 'true',
+            useSpringBoot3        : 'true',
+            useTags               : 'true',
+            openApiNullable       : 'false',
+            dateLibrary           : 'java8-localdatetime',
+            documentationProvider : 'springdoc',
+            skipSetterForNullable : 'true',
+            skipDefaultInterface  : 'true',
+            additionalModelTypeAnnotations: '@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)'
+    ]
+}
+
+// ---- Подключить сгенерированные файлы ----
+sourceSets {
+    main {
+        java {
+            srcDir "${buildDir}/generated/openapi/src/main/java"
+        }
+    }
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+
+// ---- MapStruct + Lombok настройки ----
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += [
+            '-Amapstruct.defaultComponentModel=spring',
+            '-Amapstruct.unmappedTargetPolicy=ERROR'
+    ]
+}
+
+// ---- Spotless (форматирование) ----
+spotless {
+    java {
+        target 'src/**/*.java'
+        targetExclude 'build/**', '**/generated/**'
+        googleJavaFormat('1.35.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// ---- Checkstyle ----
+check.dependsOn checkstyleMain
+
+checkstyle {
+    toolVersion = '10.12.4'
+    maxErrors = 0
+    maxWarnings = 999
+    showViolations = true
+    configFile = file('config/checkstyle/checkstyle.xml')
+}
+
+checkstyleMain {
+    group = 'verification'
+}
+
+checkstyleTest {
+    group = 'verification'
+}
+
+tasks.named('checkstyleMain') {
+    source = source.filter { !it.path.contains(File.separator + 'build' + File.separator) }
+}
+
+
+test {
+    useJUnitPlatform()
+}
+
+
+// ---- JaCoCo (покрытие) ----
+
+check {
+    dependsOn jacocoTestCoverageVerification
+}
+
+jacoco {
+    toolVersion = '0.8.14'
+}
+// Настройка JaCoCo отчёта
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = false
+        csv.required = false
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/test/html')
+    }
+
+    // Исключения из отчёта покрытия
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect { dir ->
+            fileTree(dir: dir, exclude: [
+                    '**/Application.class',
+                    '**/generated/**'
+            ])
+        }))
+    }
+}
+
+// Настройка проверки покрытия (минимум 80%)
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+    // Исключения из отчёта покрытия
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect { dir ->
+            fileTree(dir: dir, exclude: [
+                    '**/Application.class',
+                    '**/generated/**'
+            ])
+        }))
+    }
+}
