@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: Contact Service API
+  version: 1.0.0
+  description: API для управления контактами
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
