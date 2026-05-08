@@ -1,0 +1,100 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-initial-schema
+      author: dev
+      changes:
+        # Таблица Leads
+        - createTable:
+            tableName: leads
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: status
+                  type: varchar(50)
+                  defaultValue: 'NEW'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: person_id
+                  type: uuid
+              - column:
+                  name: source
+                  type: varchar(100)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: current_timestamp
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: current_timestamp
+
+        # Индексы для Leads
+        - createIndex:
+            tableName: leads
+            indexName: idx_leads_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: leads
+            indexName: idx_leads_person_id
+            columns:
+              - column:
+                  name: person_id
+
+        # Таблица Истории статусов
+        - createTable:
+            tableName: lead_status_history
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: lead_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: from_status
+                  type: varchar(50)
+              - column:
+                  name: to_status
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: changed_at
+                  type: timestamp
+                  defaultValueComputed: current_timestamp
+
+        # Foreign Key для истории
+        - addForeignKeyConstraint:
+            baseTableName: lead_status_history
+            baseColumnNames: lead_id
+            constraintName: fk_history_lead
+            referencedTableName: leads
+            referencedColumnNames: id
+            onDelete: CASCADE

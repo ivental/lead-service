@@ -2,9 +2,9 @@ services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/contact_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/lead_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_LIQUIBASE_ENABLED: "true"
@@ -16,9 +16,9 @@ services:
   db:
     image: postgres:17-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      POSTGRES_DB: contact_db
+      POSTGRES_DB: lead_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:

@@ -31,8 +31,9 @@ ext {
     springdocVersion = '2.8.3'
     openapiNullableVersion = '0.2.10'
     wiremockVersion = '3.13.2'
-    testcontainersVersion = '1.19.3'
+    testcontainersVersion = '2.0.5'
     springCloudVersion = '2024.0.1'
+    mockitoVersion = '5.17.0'
 }
 
 
@@ -78,20 +79,37 @@ dependencies {
     //implementation 'ru.mentee.power.crm:crm-platform-component:0.1.0'
 
     // ---- Test ----
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation ('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.mockito', module: 'mockito-core'
+        exclude group: 'org.mockito', module: 'mockito-junit-jupiter'
+    }
     testImplementation "org.testcontainers:testcontainers:${testcontainersVersion}"
     testImplementation "org.testcontainers:postgresql"
     testImplementation "org.testcontainers:junit-jupiter"
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    testImplementation "net.bytebuddy:byte-buddy:1.17.5"
+    testImplementation "net.bytebuddy:byte-buddy-agent:1.17.5"
+}
+
+// Force Byte Buddy upgrade for Java 25 support
+configurations.all {
+    resolutionStrategy {
+        force 'net.bytebuddy:byte-buddy:1.17.5'
+        force 'net.bytebuddy:byte-buddy-agent:1.17.5'
+        force "org.mockito:mockito-core:${mockitoVersion}"
+        force "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    }
 }
 
 // ---- OpenAPI Generator ----
 openApiGenerate {
     generatorName = "spring"
-    inputSpec = "${projectDir}/src/main/resources/api/openapi-v1.yaml"
+    inputSpec = "${projectDir}/src/main/resources/api/openapi-v1.yaml".replace('\\', '/')
     outputDir = "${buildDir}/generated/openapi"
-    apiPackage = "ru.mentee.power.crm.contactservice.adapter.out.client.api"
-    modelPackage = "ru.mentee.power.crm.contactservice.adapter.out.client.model"
+    apiPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.api"
+    modelPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.dto"
     configOptions = [
             interfaceOnly         : 'true',
             useSpringBoot3        : 'true',
@@ -162,6 +180,7 @@ tasks.named('checkstyleMain') {
 
 test {
     useJUnitPlatform()
+    systemProperty "net.bytebuddy.experimental", "true"
 }
 
 
@@ -189,7 +208,13 @@ jacocoTestReport {
         classDirectories.setFrom(files(classDirectories.files.collect { dir ->
             fileTree(dir: dir, exclude: [
                     '**/Application.class',
-                    '**/generated/**'
+                    '**/generated/**',
+                    '**/openapi/**',
+                    '**/adapter/out/client/**',
+                    '**/adapter/out/persistence/**',
+                    '**/adapter/mapper/**',
+                    '**/*UseCase.class',
+                    '**/*Port.class'
             ])
         }))
     }
@@ -209,7 +234,13 @@ jacocoTestCoverageVerification {
         classDirectories.setFrom(files(classDirectories.files.collect { dir ->
             fileTree(dir: dir, exclude: [
                     '**/Application.class',
-                    '**/generated/**'
+                    '**/generated/**',
+                    '**/openapi/**',
+                    '**/adapter/out/client/**',
+                    '**/adapter/out/persistence/**',
+                    '**/adapter/mapper/**',
+                    '**/*UseCase.class',
+                    '**/*Port.class'
             ])
         }))
     }

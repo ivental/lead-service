@@ -1,9 +1,9 @@
 spring:
   application:
-    name: contact-service
+    name: lead-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/contact_db
+    url: jdbc:postgresql://localhost:5433/lead_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -18,10 +18,17 @@ spring:
         format_sql: true
 
   liquibase:
-    enabled: false  # пока нет миграций
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
 
 server:
-  port: 8080
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
 logging:
   level:

@@ -1,26 +1,181 @@
 openapi: 3.1.0
 info:
-  title: Contact Service API
+  title: Lead Service API
   version: 1.0.0
-  description: API для управления контактами
+  description: API для управления лидами (потенциальными клиентами)
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8081
     description: Local development server
 
 paths:
-  /health:
-    get:
-      summary: Health check endpoint
-      operationId: healthCheck
+  /api/v1/leads:
+    post:
+      summary: Create a new lead
+      operationId: createLead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreateRequest'
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Lead created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: UP
+                $ref: '#/components/schemas/LeadResponse'
+    get:
+      summary: List leads by status
+      operationId: listLeads
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/LeadStatus'
+      responses:
+        '200':
+          description: List of leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeadResponse'
+  /api/v1/leads/{id}:
+    get:
+      summary: Get lead by ID
+      operationId: getLeadById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lead found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadResponse'
+        '404':
+          description: Lead not found
+    put:
+      summary: Update lead
+      operationId: updateLead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadUpdateRequest'
+      responses:
+        '200':
+          description: Lead updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadResponse'
+    delete:
+      summary: Delete lead
+      operationId: deleteLead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Lead deleted
+  /api/v1/leads/{id}/transition:
+    patch:
+      summary: Change lead status
+      operationId: changeStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadStatus'
+      responses:
+        '200':
+          description: Status changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadResponse'
+
+components:
+  schemas:
+    LeadStatus:
+      type: string
+      enum:
+        - NEW
+        - CONTACTED
+        - QUALIFIED
+        - DISQUALIFIED
+    LeadCreateRequest:
+      type: object
+      required:
+        - title
+        - personId
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        personId:
+          type: string
+          format: uuid
+        source:
+          type: string
+    LeadUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+    LeadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        personId:
+          type: string
+          format: uuid
+        source:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
