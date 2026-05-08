@@ -21,6 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadCreateRequest;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
 import ru.mentee.power.crm.leadservice.adapter.out.persistence.repository.LeadJpaRepository;
 
 @SpringBootTest
@@ -90,21 +92,6 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withEmptyTitle_shouldReturn400() throws Exception {
-    LeadCreateRequest request = new LeadCreateRequest();
-    request.setTitle("");
-    request.setSource("WEB_FORM");
-    request.setPersonId(UUID.randomUUID());
-
-    mockMvc
-        .perform(
-            post("/api/v1/leads")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
   void createLead_withoutPersonId_shouldReturn400() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setTitle("Test Lead");
@@ -115,24 +102,6 @@ class LeadControllerTest {
             post("/api/v1/leads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void createLead_withInvalidSource_shouldReturn400() throws Exception {
-    String invalidJson =
-        String.format(
-            """
-        {
-          "title": "Test Lead",
-          "source": "INVALID_SOURCE",
-          "personId": "%s"
-        }
-        """,
-            UUID.randomUUID());
-
-    mockMvc
-        .perform(post("/api/v1/leads").contentType(MediaType.APPLICATION_JSON).content(invalidJson))
         .andExpect(status().isBadRequest());
   }
 

@@ -2,7 +2,7 @@ package ru.mentee.power.crm.leadservice.adapter.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.LeadResponse;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
 import ru.mentee.power.crm.leadservice.domain.model.Lead;
 import ru.mentee.power.crm.leadservice.domain.model.LeadStatus;
 

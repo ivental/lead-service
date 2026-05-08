@@ -108,8 +108,8 @@ openApiGenerate {
     generatorName = "spring"
     inputSpec = "${projectDir}/src/main/resources/api/openapi-v1.yaml".replace('\\', '/')
     outputDir = "${buildDir}/generated/openapi"
-    apiPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.api"
-    modelPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.model"
+    apiPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.api"
+    modelPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.dto"
     configOptions = [
             interfaceOnly         : 'true',
             useSpringBoot3        : 'true',
