@@ -1,4 +1,4 @@
-package ru.mentee.power.crm.leadservice.domain;
+package ru.mentee.power.crm.leadservice.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -7,15 +7,19 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "leads")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Lead {
+@Entity
+@Table(name = "leads")
+public class LeadJpaEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+
+  @Version
+  @Column(nullable = false)
+  private Long version = 0L;
 
   @Column(nullable = false)
   private String title;
@@ -23,8 +27,8 @@ public class Lead {
   @Column private String description;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "status")
-  private LeadStatus status;
+  @Column(name = "status", nullable = false)
+  private LeadJpaStatus status;
 
   @Column(name = "person_id")
   private UUID personId;
