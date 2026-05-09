@@ -13,7 +13,9 @@ public interface LeadMapper {
   LeadResponse toResponse(Lead lead);
 
   default LeadStatus map(String value) {
-    if (value == null) return null;
+    if (value == null) {
+      return null;
+    }
     return LeadStatus.valueOf(value);
   }
 }

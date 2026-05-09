@@ -23,17 +23,23 @@ public interface LeadJpaMapper {
   Lead toDomain(LeadJpaEntity entity);
 
   default LeadJpaStatus toJpaStatus(LeadStatus status) {
-    if (status == null) return null;
+    if (status == null) {
+      return null;
+    }
     return LeadJpaStatus.valueOf(status.name());
   }
 
   default LeadStatus toDomainStatus(LeadJpaStatus jpaStatus) {
-    if (jpaStatus == null) return null;
+    if (jpaStatus == null) {
+      return null;
+    }
     return LeadStatus.valueOf(jpaStatus.name());
   }
 
   default LeadStatusHistoryJpaEntity toHistoryJpaEntity(LeadStatusHistory history) {
-    if (history == null) return null;
+    if (history == null) {
+      return null;
+    }
     LeadStatusHistoryJpaEntity entity = new LeadStatusHistoryJpaEntity();
     entity.setId(history.getId());
     entity.setLeadId(history.getLeadId());
