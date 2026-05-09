@@ -6,7 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.api.LeadApi;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.api.DefaultApi;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadCreateRequest;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadStatus;
@@ -17,7 +17,7 @@ import ru.mentee.power.crm.leadservice.usecase.port.in.*;
 
 @RestController
 @RequiredArgsConstructor
-public class LeadController implements LeadApi {
+public class LeadController implements DefaultApi {
 
   private final CreateLeadUseCase createLeadUseCase;
   private final GetLeadUseCase getLeadUseCase;

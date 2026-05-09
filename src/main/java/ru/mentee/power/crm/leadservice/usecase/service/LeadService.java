@@ -63,8 +63,12 @@ public class LeadService
   @Override
   public Lead update(UUID id, String title, String description) {
     Lead lead = loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
-    if (title != null) lead.setTitle(title);
-    if (description != null) lead.setDescription(description);
+    if (title != null) {
+      lead.setTitle(title);
+    }
+    if (description != null) {
+      lead.setDescription(description);
+    }
     return saveLeadPort.save(lead);
   }
 

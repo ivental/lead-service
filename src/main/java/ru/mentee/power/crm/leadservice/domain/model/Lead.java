@@ -13,7 +13,9 @@ public class Lead {
           LeadStatus.CONTACTED, Set.of(LeadStatus.QUALIFIED, LeadStatus.DISQUALIFIED));
 
   public void changeStatus(LeadStatus newStatus) {
-    if (this.status == newStatus) return;
+    if (this.status == newStatus) {
+      return;
+    }
     if (!VALID_TRANSITIONS.getOrDefault(this.status, Set.of()).contains(newStatus)) {
       throw new InvalidStatusTransitionException(this.status, newStatus);
     }
