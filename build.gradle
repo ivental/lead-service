@@ -110,6 +110,7 @@ openApiGenerate {
     outputDir = "${buildDir}/generated/openapi"
     apiPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.api"
     modelPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest.dto"
+    invokerPackage = "ru.mentee.power.crm.leadservice.adapter.in.rest"
     configOptions = [
             interfaceOnly         : 'true',
             useSpringBoot3        : 'true',
@@ -127,9 +128,13 @@ openApiGenerate {
 sourceSets {
     main {
         java {
-            srcDir "${buildDir}/generated/openapi/src/main/java"
+                srcDir "${buildDir}/generated/openapi/src/main/java"
         }
     }
+}
+
+clean {
+    delete "${buildDir}/generated"
 }
 
 compileJava.dependsOn tasks.openApiGenerate
