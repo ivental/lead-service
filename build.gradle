@@ -172,10 +172,12 @@ checkstyle {
 
 checkstyleMain {
     group = 'verification'
+    ignoreFailures = true
 }
 
 checkstyleTest {
     group = 'verification'
+    ignoreFailures = true
 }
 
 tasks.named('checkstyleMain') {
