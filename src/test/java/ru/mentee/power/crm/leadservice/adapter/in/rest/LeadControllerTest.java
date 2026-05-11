@@ -60,7 +60,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withValidRequest_shouldReturn201() throws Exception {
+  void createLeadWithValidRequestShouldReturn201() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setTitle("Test Lead");
     request.setSource("WEBSITE");
@@ -78,7 +78,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withoutTitle_shouldReturn400() throws Exception {
+  void createLeadWithoutTitleShouldReturn400() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setSource("WEB_FORM");
     request.setPersonId(UUID.randomUUID());
@@ -92,7 +92,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withoutPersonId_shouldReturn400() throws Exception {
+  void createLeadWithoutPersonIdShouldReturn400() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setTitle("Test Lead");
     request.setSource("WEBSITE");
@@ -106,7 +106,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void getLeadById_withExistingId_shouldReturn200() throws Exception {
+  void getLeadByIdWithExistingIdShouldReturn200() throws Exception {
     LeadCreateRequest createRequest = new LeadCreateRequest();
     createRequest.setTitle("Test Lead");
     createRequest.setSource("WEBSITE");
@@ -134,7 +134,158 @@ class LeadControllerTest {
   }
 
   @Test
-  void getLeadById_withNonExistingId_shouldReturn404() throws Exception {
+  void getLeadByIdWithNonExistingIdShouldReturn404() throws Exception {
     mockMvc.perform(get("/api/v1/leads/" + UUID.randomUUID())).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateLeadWithValidRequestShouldReturn200() throws Exception {
+    LeadCreateRequest createRequest = new LeadCreateRequest();
+    createRequest.setTitle("Original Title");
+    createRequest.setSource("WEBSITE");
+    createRequest.setPersonId(UUID.randomUUID());
+
+    String response =
+        mockMvc
+            .perform(
+                post("/api/v1/leads")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createRequest)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    LeadResponse createdLead = objectMapper.readValue(response, LeadResponse.class);
+    UUID leadId = createdLead.getId();
+
+    String updateJson = "{ \"title\": \"Updated Title\", \"description\": \"New Description\" }";
+
+    mockMvc
+        .perform(
+            put("/api/v1/leads/" + leadId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Updated Title"))
+        .andExpect(jsonPath("$.description").value("New Description"));
+  }
+
+  @Test
+  void updateLeadWithEmptyTitleShouldReturn400() throws Exception {
+    LeadCreateRequest createRequest = new LeadCreateRequest();
+    createRequest.setTitle("Original Title");
+    createRequest.setSource("WEBSITE");
+    createRequest.setPersonId(UUID.randomUUID());
+
+    String response =
+        mockMvc
+            .perform(
+                post("/api/v1/leads")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createRequest)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    LeadResponse createdLead = objectMapper.readValue(response, LeadResponse.class);
+    UUID leadId = createdLead.getId();
+
+    String updateJson = "{ \"title\": \"\" }";
+
+    mockMvc
+        .perform(
+            put("/api/v1/leads/" + leadId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateLeadWithNonExistingIdShouldReturn404() throws Exception {
+    String updateJson = "{ \"title\": \"Updated Title\" }";
+
+    mockMvc
+        .perform(
+            put("/api/v1/leads/" + UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteLeadWithExistingIdShouldReturn204() throws Exception {
+    LeadCreateRequest createRequest = new LeadCreateRequest();
+    createRequest.setTitle("To Delete");
+    createRequest.setSource("WEBSITE");
+    createRequest.setPersonId(UUID.randomUUID());
+
+    String response =
+        mockMvc
+            .perform(
+                post("/api/v1/leads")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createRequest)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    LeadResponse createdLead = objectMapper.readValue(response, LeadResponse.class);
+    UUID leadId = createdLead.getId();
+
+    mockMvc.perform(delete("/api/v1/leads/" + leadId)).andExpect(status().isNoContent());
+
+    mockMvc.perform(get("/api/v1/leads/" + leadId)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteLeadWithNonExistingIdShouldReturn404() throws Exception {
+    mockMvc.perform(delete("/api/v1/leads/" + UUID.randomUUID())).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void changeStatusWithInvalidTransitionShouldReturn409() throws Exception {
+    LeadCreateRequest createRequest = new LeadCreateRequest();
+    createRequest.setTitle("Test Lead");
+    createRequest.setSource("WEBSITE");
+    createRequest.setPersonId(UUID.randomUUID());
+
+    String response =
+        mockMvc
+            .perform(
+                post("/api/v1/leads")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createRequest)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("NEW"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    LeadResponse createdLead = objectMapper.readValue(response, LeadResponse.class);
+    UUID leadId = createdLead.getId();
+
+    String statusJson = "{ \"status\": \"QUALIFIED\" }";
+
+    mockMvc
+        .perform(
+            patch("/api/v1/leads/" + leadId + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(statusJson))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void changeStatusWithNonExistingIdShouldReturn404() throws Exception {
+    String statusJson = "{ \"status\": \"CONTACTED\" }";
+
+    mockMvc
+        .perform(
+            patch("/api/v1/leads/" + UUID.randomUUID() + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(statusJson))
+        .andExpect(status().isNotFound());
   }
 }

@@ -46,6 +46,7 @@ public interface LeadJpaMapper {
     entity.setFromStatus(toJpaStatus(history.getFromStatus()));
     entity.setToStatus(toJpaStatus(history.getToStatus()));
     entity.setChangedAt(history.getChangedAt());
+    entity.setVersion(0L);
     return entity;
   }
 }

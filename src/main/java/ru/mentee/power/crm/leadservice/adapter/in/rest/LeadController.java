@@ -4,23 +4,24 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.api.DefaultApi;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadCreateRequest;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadStatus;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadUpdateRequest;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.api.LeadApi;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.*;
 import ru.mentee.power.crm.leadservice.adapter.mapper.LeadMapper;
 import ru.mentee.power.crm.leadservice.domain.model.Lead;
 import ru.mentee.power.crm.leadservice.usecase.port.in.*;
 
 @RestController
 @RequiredArgsConstructor
-public class LeadController implements DefaultApi {
+public class LeadController implements LeadApi {
 
   private final CreateLeadUseCase createLeadUseCase;
   private final GetLeadUseCase getLeadUseCase;
+  private final UpdateLeadUseCase updateLeadUseCase;
+  private final DeleteLeadUseCase deleteLeadUseCase;
+  private final ChangeStatusUseCase changeStatusUseCase;
   private final LeadMapper leadMapper;
 
   @Override
@@ -44,25 +45,27 @@ public class LeadController implements DefaultApi {
   }
 
   @Override
-  public ResponseEntity<LeadResponse> updateLead(UUID id, LeadUpdateRequest leadUpdateRequest) {
-    return null;
+  public ResponseEntity<LeadResponse> updateLead(UUID id, LeadUpdateRequest request) {
+    Lead lead = updateLeadUseCase.update(id, request.getTitle(), request.getDescription());
+    return ResponseEntity.ok(leadMapper.toResponse(lead));
   }
 
-  // Будет реализовано позже
   @Override
   public ResponseEntity<Void> deleteLead(UUID id) {
-    return null;
+    deleteLeadUseCase.delete(id);
+    return ResponseEntity.noContent().build();
   }
 
-  // Будет реализовано позже
   @Override
-  public ResponseEntity<LeadResponse> changeStatus(UUID id, String body) {
-    return null;
+  public ResponseEntity<LeadResponse> changeStatus(UUID id, ChangeStatusRequest request) {
+    Lead lead =
+        changeStatusUseCase.changeStatus(id, leadMapper.toDomainStatus(request.getStatus()));
+    return ResponseEntity.ok(leadMapper.toResponse(lead));
   }
 
   // Будет реализовано позже
   @Override
   public ResponseEntity<List<LeadResponse>> listLeads(LeadStatus status) {
-    return null;
+    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
   }
 }
