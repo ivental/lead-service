@@ -62,7 +62,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withValidRequest_shouldReturn201() throws Exception {
+  void createLeadWithValidRequestShouldReturn201() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setTitle("Test Lead");
     request.setSource("WEBSITE");
@@ -80,7 +80,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withoutTitle_shouldReturn400() throws Exception {
+  void createLeadWithoutTitleShouldReturn400() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setSource("WEB_FORM");
     request.setPersonId(UUID.randomUUID());
@@ -94,7 +94,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLead_withoutPersonId_shouldReturn400() throws Exception {
+  void createLeadWithoutPersonIdShouldReturn400() throws Exception {
     LeadCreateRequest request = new LeadCreateRequest();
     request.setTitle("Test Lead");
     request.setSource("WEBSITE");
@@ -108,7 +108,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void getLeadById_withExistingId_shouldReturn200() throws Exception {
+  void getLeadByIdWithExistingIdShouldReturn200() throws Exception {
     LeadCreateRequest createRequest = new LeadCreateRequest();
     createRequest.setTitle("Test Lead");
     createRequest.setSource("WEBSITE");
@@ -136,7 +136,7 @@ class LeadControllerTest {
   }
 
   @Test
-  void getLeadById_withNonExistingId_shouldReturn404() throws Exception {
+  void getLeadByIdWithNonExistingIdShouldReturn404() throws Exception {
     mockMvc.perform(get("/api/v1/leads/" + UUID.randomUUID())).andExpect(status().isNotFound());
   }
 }
