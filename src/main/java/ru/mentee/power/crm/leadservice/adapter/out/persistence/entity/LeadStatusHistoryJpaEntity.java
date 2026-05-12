@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,6 +18,10 @@ public class LeadStatusHistoryJpaEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+
+  @Version
+  @Column(nullable = false)
+  private Long version = 0L;
 
   @Column(name = "lead_id", nullable = false)
   private UUID leadId;
@@ -40,6 +45,14 @@ public class LeadStatusHistoryJpaEntity {
 
   public void setId(UUID id) {
     this.id = id;
+  }
+
+  public Long getVersion() {
+    return version;
+  }
+
+  public void setVersion(Long version) {
+    this.version = version;
   }
 
   public UUID getLeadId() {

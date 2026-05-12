@@ -1,8 +1,8 @@
 package ru.mentee.power.crm.leadservice.adapter.in.rest.error;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +13,7 @@ import org.springframework.web.context.request.WebRequest;
 import ru.mentee.power.crm.leadservice.domain.exception.InvalidStatusTransitionException;
 import ru.mentee.power.crm.leadservice.domain.exception.LeadNotFoundException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -21,12 +22,13 @@ public class GlobalExceptionHandler {
       IllegalArgumentException ex, WebRequest request) {
 
     ErrorResponse error =
-        new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
+        ErrorResponse.of(
+            "/problems/bad-request",
             "Bad Request",
+            HttpStatus.BAD_REQUEST.value(),
             ex.getMessage(),
-            getPath(request));
+            getPath(request),
+            "ILLEGAL_ARGUMENT");
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -38,19 +40,20 @@ public class GlobalExceptionHandler {
     ex.getBindingResult()
         .getAllErrors()
         .forEach(
-            (error) -> {
+            error -> {
               String fieldName = ((FieldError) error).getField();
               String errorMessage = error.getDefaultMessage();
               errors.put(fieldName, errorMessage);
             });
 
     ErrorResponse error =
-        new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
+        ErrorResponse.of(
+            "/problems/validation-error",
             "Validation Failed",
+            HttpStatus.BAD_REQUEST.value(),
             errors.toString(),
-            getPath(request));
+            getPath(request),
+            "VALIDATION_ERROR");
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -59,12 +62,13 @@ public class GlobalExceptionHandler {
       InvalidStatusTransitionException ex, WebRequest request) {
 
     ErrorResponse error =
-        new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.CONFLICT.value(),
+        ErrorResponse.of(
+            "/problems/invalid-transition",
             "Invalid Status Transition",
+            HttpStatus.CONFLICT.value(),
             ex.getMessage(),
-            getPath(request));
+            getPath(request),
+            "INVALID_STATUS_TRANSITION");
     return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
   }
 
@@ -73,32 +77,48 @@ public class GlobalExceptionHandler {
       LeadNotFoundException ex, WebRequest request) {
 
     ErrorResponse error =
-        new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.NOT_FOUND.value(),
+        ErrorResponse.of(
+            "/problems/not-found",
             "Not Found",
+            HttpStatus.NOT_FOUND.value(),
             ex.getMessage(),
-            getPath(request));
+            getPath(request),
+            "LEAD_NOT_FOUND");
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
 
+    log.error("Unexpected error", ex);
+
     ErrorResponse error =
-        new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        ErrorResponse.of(
+            "/problems/internal-server-error",
             "Internal Server Error",
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
             ex.getMessage(),
-            getPath(request));
+            getPath(request),
+            "INTERNAL_ERROR");
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+  }
+
+  @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+      org.springframework.http.converter.HttpMessageNotReadableException ex, WebRequest request) {
+
+    ErrorResponse error =
+        ErrorResponse.of(
+            "/problems/bad-request",
+            "Bad Request",
+            HttpStatus.BAD_REQUEST.value(),
+            "Invalid status value. Allowed: NEW, CONTACTED, QUALIFIED, DISQUALIFIED",
+            getPath(request),
+            "INVALID_STATUS_VALUE");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
   private String getPath(WebRequest request) {
     return request.getDescription(false).replace("uri=", "");
   }
 }
-
-record ErrorResponse(
-    LocalDateTime timestamp, int status, String error, String message, String path) {}

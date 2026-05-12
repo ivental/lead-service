@@ -1,5 +1,6 @@
 package ru.mentee.power.crm.leadservice.usecase.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,18 +62,23 @@ public class LeadService
   }
 
   @Override
+  @Transactional
   public Lead update(UUID id, String title, String description) {
     Lead lead = loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
-    if (title != null) {
-      lead.setTitle(title);
+    if (title == null || title.isBlank()) {
+      throw new IllegalArgumentException("Title is required");
     }
+    lead.setTitle(title);
+
     if (description != null) {
       lead.setDescription(description);
     }
+    lead.setUpdatedAt(LocalDateTime.now());
     return saveLeadPort.save(lead);
   }
 
   @Override
+  @Transactional
   public void delete(UUID id) {
     loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
     deleteLeadPort.deleteById(id);
@@ -89,7 +95,6 @@ public class LeadService
     lead.changeStatus(newStatus);
     Lead savedLead = saveLeadPort.save(lead);
     LeadStatusHistory history = new LeadStatusHistory();
-    history.setId(UUID.randomUUID());
     history.setLeadId(id);
     history.setFromStatus(fromStatus);
     history.setToStatus(newStatus);
