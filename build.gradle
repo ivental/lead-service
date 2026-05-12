@@ -211,7 +211,7 @@ jacocoTestReport {
     // Исключения из отчёта покрытия
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect { dir ->
-            fileTree(dir: dir, exclude: [
+            fileTree(dir: dir, includes: [
                     '**/Application.class',
                     '**/generated/**',
                     '**/openapi/**',
@@ -230,22 +230,15 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.40
+                minimum = 0.80
             }
         }
     }
     // Исключения из отчёта покрытия
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect { dir ->
-            fileTree(dir: dir, exclude: [
-                    '**/Application.class',
-                    '**/generated/**',
-                    '**/openapi/**',
-                    '**/adapter/out/client/**',
-                    '**/adapter/out/persistence/**',
-                    '**/adapter/mapper/**',
-                    '**/*UseCase.class',
-                    '**/*Port.class'
+            fileTree(dir: dir, include: [
+                    '**/adapter/in/rest/LeadController.class'
             ])
         }))
     }

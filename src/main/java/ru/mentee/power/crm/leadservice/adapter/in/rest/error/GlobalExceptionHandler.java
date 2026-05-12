@@ -103,6 +103,21 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
   }
 
+  @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+      org.springframework.http.converter.HttpMessageNotReadableException ex, WebRequest request) {
+
+    ErrorResponse error =
+        ErrorResponse.of(
+            "/problems/bad-request",
+            "Bad Request",
+            HttpStatus.BAD_REQUEST.value(),
+            "Invalid status value. Allowed: NEW, CONTACTED, QUALIFIED, DISQUALIFIED",
+            getPath(request),
+            "INVALID_STATUS_VALUE");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
   private String getPath(WebRequest request) {
     return request.getDescription(false).replace("uri=", "");
   }

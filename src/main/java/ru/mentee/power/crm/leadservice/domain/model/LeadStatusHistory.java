@@ -4,21 +4,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class LeadStatusHistory {
-  private UUID id;
   private UUID leadId;
   private LeadStatus fromStatus;
   private LeadStatus toStatus;
   private LocalDateTime changedAt;
 
   public LeadStatusHistory() {}
-
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
 
   public UUID getLeadId() {
     return leadId;

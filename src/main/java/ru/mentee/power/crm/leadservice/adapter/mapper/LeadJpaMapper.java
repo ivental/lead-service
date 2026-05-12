@@ -41,7 +41,6 @@ public interface LeadJpaMapper {
       return null;
     }
     LeadStatusHistoryJpaEntity entity = new LeadStatusHistoryJpaEntity();
-    entity.setId(history.getId());
     entity.setLeadId(history.getLeadId());
     entity.setFromStatus(toJpaStatus(history.getFromStatus()));
     entity.setToStatus(toJpaStatus(history.getToStatus()));

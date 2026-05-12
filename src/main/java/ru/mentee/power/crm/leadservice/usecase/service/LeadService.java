@@ -95,7 +95,6 @@ public class LeadService
     lead.changeStatus(newStatus);
     Lead savedLead = saveLeadPort.save(lead);
     LeadStatusHistory history = new LeadStatusHistory();
-    history.setId(UUID.randomUUID());
     history.setLeadId(id);
     history.setFromStatus(fromStatus);
     history.setToStatus(newStatus);
