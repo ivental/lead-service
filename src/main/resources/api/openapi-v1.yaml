@@ -31,6 +31,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeadResponse'
+        '400':
+          description: Validation error (missing title or personId)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags:
         - Lead
@@ -98,6 +104,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeadResponse'
+        '400':
+          description: Validation error (empty title)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Lead not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags:
         - Lead
@@ -113,6 +131,12 @@ paths:
       responses:
         '204':
           description: Lead deleted
+        '404':
+          description: Lead not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/leads/{id}/status:
     patch:
       tags:
@@ -144,7 +168,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeadResponse'
-
+        '400':
+          description: Invalid status value
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Lead not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Invalid status transition
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     LeadStatus:
@@ -199,3 +240,25 @@ components:
         updatedAt:
           type: string
           format: date-time
+    ErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        service:
+          type: string
+        errorCode:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        traceId:
+          type: string

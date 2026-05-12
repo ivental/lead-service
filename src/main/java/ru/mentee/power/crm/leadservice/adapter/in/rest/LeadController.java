@@ -3,15 +3,24 @@ package ru.mentee.power.crm.leadservice.adapter.in.rest;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.api.LeadApi;
-import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.*;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.ChangeStatusRequest;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadCreateRequest;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadStatus;
+import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadUpdateRequest;
 import ru.mentee.power.crm.leadservice.adapter.mapper.LeadMapper;
 import ru.mentee.power.crm.leadservice.domain.model.Lead;
-import ru.mentee.power.crm.leadservice.usecase.port.in.*;
+import ru.mentee.power.crm.leadservice.usecase.port.in.ChangeStatusUseCase;
+import ru.mentee.power.crm.leadservice.usecase.port.in.CreateLeadUseCase;
+import ru.mentee.power.crm.leadservice.usecase.port.in.DeleteLeadUseCase;
+import ru.mentee.power.crm.leadservice.usecase.port.in.GetLeadUseCase;
+import ru.mentee.power.crm.leadservice.usecase.port.in.UpdateLeadUseCase;
 
 @RestController
 @RequiredArgsConstructor
