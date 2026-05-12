@@ -2,7 +2,6 @@ package ru.mentee.power.crm.leadservice.adapter.in.rest.error;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

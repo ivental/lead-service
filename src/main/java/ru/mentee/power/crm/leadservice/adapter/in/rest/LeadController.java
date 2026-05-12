@@ -3,7 +3,6 @@ package ru.mentee.power.crm.leadservice.adapter.in.rest;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
