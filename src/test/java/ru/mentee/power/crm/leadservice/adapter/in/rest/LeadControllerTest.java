@@ -394,18 +394,6 @@ class LeadControllerTest {
   }
 
   @Test
-  void listLeadsShouldReturnNotImplemented() throws Exception {
-    mockMvc
-        .perform(get("/api/v1/leads").param("status", "NEW"))
-        .andExpect(status().isNotImplemented());
-  }
-
-  @Test
-  void listLeadsWithoutStatusShouldReturnNotImplemented() throws Exception {
-    mockMvc.perform(get("/api/v1/leads")).andExpect(status().isNotImplemented());
-  }
-
-  @Test
   void updateLeadWithNullDescriptionShouldReturn200() throws Exception {
     LeadCreateRequest createRequest = new LeadCreateRequest();
     createRequest.setTitle("Original Title");
@@ -529,5 +517,78 @@ class LeadControllerTest {
                 .content("{ \"status\": \"DISQUALIFIED\" }"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("DISQUALIFIED"));
+  }
+
+  @Test
+  void listLeadsWithDefaultPaginationShouldReturnPage() throws Exception {
+    UUID personId = UUID.randomUUID();
+    for (int i = 0; i < 25; i++) {
+      createTestLead("Lead " + i, "WEBSITE", personId);
+    }
+
+    mockMvc
+        .perform(get("/api/v1/leads"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(20))
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.size").value(20))
+        .andExpect(jsonPath("$.totalElements").value(25))
+        .andExpect(jsonPath("$.totalPages").value(2));
+  }
+
+  @Test
+  void listLeadsWithCustomPageAndSizeShouldReturnCorrectPage() throws Exception {
+    UUID personId = UUID.randomUUID();
+    for (int i = 0; i < 15; i++) {
+      createTestLead("Lead " + i, "WEBSITE", personId);
+    }
+
+    mockMvc
+        .perform(get("/api/v1/leads").param("page", "1").param("size", "5"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(5))
+        .andExpect(jsonPath("$.page").value(1))
+        .andExpect(jsonPath("$.size").value(5))
+        .andExpect(jsonPath("$.totalElements").value(15))
+        .andExpect(jsonPath("$.totalPages").value(3));
+  }
+
+  @Test
+  void listLeadsWithPageOutOfRangeShouldReturnEmptyPage() throws Exception {
+    UUID personId = UUID.randomUUID();
+    createTestLead("Test Lead", "WEBSITE", personId);
+
+    mockMvc
+        .perform(get("/api/v1/leads").param("page", "10").param("size", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(0))
+        .andExpect(jsonPath("$.page").value(10))
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.totalPages").value(1));
+  }
+
+  private void createTestLead(String title, String source, UUID personId) throws Exception {
+    LeadCreateRequest request = new LeadCreateRequest();
+    request.setTitle(title);
+    request.setSource(source);
+    request.setPersonId(personId);
+
+    mockMvc
+        .perform(
+            post("/api/v1/leads")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void listLeadsWithEmptyDatabaseShouldReturnEmptyPage() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/leads"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(0))
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.totalPages").value(0));
   }
 }

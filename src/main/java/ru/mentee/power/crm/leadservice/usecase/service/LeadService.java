@@ -1,10 +1,11 @@
 package ru.mentee.power.crm.leadservice.usecase.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mentee.power.crm.leadservice.domain.exception.LeadNotFoundException;
@@ -54,11 +55,11 @@ public class LeadService
   }
 
   @Override
-  public List<Lead> listByStatus(LeadStatus status) {
+  public Page<Lead> listByStatus(LeadStatus status, Pageable pageable) {
     if (status == null) {
-      throw new IllegalArgumentException("Status parameter is required");
+      return loadByStatusPort.loadAll(pageable);
     }
-    return loadByStatusPort.loadByStatus(status);
+    return loadByStatusPort.loadByStatus(status, pageable);
   }
 
   @Override

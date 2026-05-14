@@ -1,9 +1,10 @@
 package ru.mentee.power.crm.leadservice.adapter.out.persistence.adapter;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import ru.mentee.power.crm.leadservice.adapter.mapper.LeadJpaMapper;
 import ru.mentee.power.crm.leadservice.adapter.out.persistence.repository.LeadJpaRepository;
@@ -39,18 +40,6 @@ public class LeadPersistenceAdapter
   }
 
   @Override
-  public List<Lead> loadAll() {
-    return jpaRepository.findAll().stream().map(jpaMapper::toDomain).toList();
-  }
-
-  @Override
-  public List<Lead> loadByStatus(LeadStatus status) {
-    return jpaRepository.findByStatus(jpaMapper.toJpaStatus(status)).stream()
-        .map(jpaMapper::toDomain)
-        .toList();
-  }
-
-  @Override
   public void deleteById(UUID id) {
     jpaRepository.deleteById(id);
   }
@@ -59,5 +48,20 @@ public class LeadPersistenceAdapter
   public void save(LeadStatusHistory history) {
     var jpaEntity = jpaMapper.toHistoryJpaEntity(history);
     historyJpaRepository.save(jpaEntity);
+  }
+
+  @Override
+  public Page<Lead> loadByStatus(LeadStatus status, Pageable pageable) {
+    if (status == null) {
+      return jpaRepository.findAll(pageable).map(jpaMapper::toDomain);
+    }
+    return jpaRepository
+        .findByStatus(jpaMapper.toJpaStatus(status), pageable)
+        .map(jpaMapper::toDomain);
+  }
+
+  @Override
+  public Page<Lead> loadAll(Pageable pageable) {
+    return jpaRepository.findAll(pageable).map(jpaMapper::toDomain);
   }
 }
