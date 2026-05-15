@@ -35,7 +35,7 @@ public class LeadPersistenceAdapter
   }
 
   @Override
-  public Optional<Lead> loadById(UUID id) {
+  public Optional<Lead> findById(UUID id) {
     return jpaRepository.findById(id).map(jpaMapper::toDomain);
   }
 
@@ -51,17 +51,14 @@ public class LeadPersistenceAdapter
   }
 
   @Override
-  public Page<Lead> loadByStatus(LeadStatus status, Pageable pageable) {
-    if (status == null) {
-      return jpaRepository.findAll(pageable).map(jpaMapper::toDomain);
-    }
+  public Page<Lead> findByStatus(LeadStatus status, Pageable pageable) {
     return jpaRepository
         .findByStatus(jpaMapper.toJpaStatus(status), pageable)
         .map(jpaMapper::toDomain);
   }
 
   @Override
-  public Page<Lead> loadAll(Pageable pageable) {
+  public Page<Lead> findAll(Pageable pageable) {
     return jpaRepository.findAll(pageable).map(jpaMapper::toDomain);
   }
 }

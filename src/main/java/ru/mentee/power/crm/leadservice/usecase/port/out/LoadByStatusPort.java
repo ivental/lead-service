@@ -6,7 +6,7 @@ import ru.mentee.power.crm.leadservice.domain.model.Lead;
 import ru.mentee.power.crm.leadservice.domain.model.LeadStatus;
 
 public interface LoadByStatusPort {
-  Page<Lead> loadByStatus(LeadStatus status, Pageable pageable);
+  Page<Lead> findByStatus(LeadStatus status, Pageable pageable);
 
-  Page<Lead> loadAll(Pageable pageable);
+  Page<Lead> findAll(Pageable pageable);
 }
