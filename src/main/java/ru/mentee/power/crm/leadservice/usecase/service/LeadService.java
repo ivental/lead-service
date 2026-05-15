@@ -1,10 +1,11 @@
 package ru.mentee.power.crm.leadservice.usecase.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mentee.power.crm.leadservice.domain.exception.LeadNotFoundException;
@@ -40,6 +41,7 @@ public class LeadService
   private final SaveStatusHistoryPort saveStatusHistoryPort;
 
   @Override
+  @Transactional
   public Lead create(String title, String description, UUID personId, String source) {
     if (personId == null) {
       throw new IllegalArgumentException("personId is required");
@@ -50,21 +52,21 @@ public class LeadService
 
   @Override
   public Optional<Lead> getById(UUID id) {
-    return loadLeadPort.loadById(id);
+    return loadLeadPort.findById(id);
   }
 
   @Override
-  public List<Lead> listByStatus(LeadStatus status) {
+  public Page<Lead> listByStatus(LeadStatus status, Pageable pageable) {
     if (status == null) {
-      throw new IllegalArgumentException("Status parameter is required");
+      return loadByStatusPort.findAll(pageable);
     }
-    return loadByStatusPort.loadByStatus(status);
+    return loadByStatusPort.findByStatus(status, pageable);
   }
 
   @Override
   @Transactional
   public Lead update(UUID id, String title, String description) {
-    Lead lead = loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
+    Lead lead = loadLeadPort.findById(id).orElseThrow(() -> new LeadNotFoundException(id));
     if (title == null || title.isBlank()) {
       throw new IllegalArgumentException("Title is required");
     }
@@ -80,7 +82,7 @@ public class LeadService
   @Override
   @Transactional
   public void delete(UUID id) {
-    loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
+    loadLeadPort.findById(id).orElseThrow(() -> new LeadNotFoundException(id));
     deleteLeadPort.deleteById(id);
   }
 
@@ -90,7 +92,7 @@ public class LeadService
     if (newStatus == null) {
       throw new IllegalArgumentException("Status is required");
     }
-    Lead lead = loadLeadPort.loadById(id).orElseThrow(() -> new LeadNotFoundException(id));
+    Lead lead = loadLeadPort.findById(id).orElseThrow(() -> new LeadNotFoundException(id));
     LeadStatus fromStatus = lead.getStatus();
     lead.changeStatus(newStatus);
     Lead savedLead = saveLeadPort.save(lead);
