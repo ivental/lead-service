@@ -1,0 +1,401 @@
+openapi: 3.1.0
+info:
+  title: Contact Service API
+  version: 1.0.0
+  description:  Реестр физических лиц (Person) и организаций (Company) MCRM.
+servers:
+  - url: http://contact-service:8080
+    description: Service-to-service через Docker network
+  - url: https://api.mcrm.ru
+    description: External access через api-gateway
+
+tags:
+  - name: persons
+    description: CRUD операций с физическими лицами
+  - name: companies
+    description: CRUD операций с организациями
+
+paths:
+  /api/v1/persons:
+    post:
+      tags: [persons]
+      operationId: createPerson
+      summary: Создать физическое лицо
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonRequest'
+      responses:
+        '201':
+          description: Создан
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+              description: /api/v1/persons/{id}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/EmailConflict' }
+    get:
+      tags: [persons]
+      operationId: listPersons
+      summary: Пагинированный список физических лиц (с поиском по email)
+      parameters:
+        - { name: email, in: query, schema: { type: string, maxLength: 255  }, description: Частичное совпадение LIKE %email% }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Страница Person
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/PersonResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/persons/{id}:
+    get:
+      tags: [persons]
+      operationId: getPersonById
+      summary: Получить физическое лицо по ID
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [persons]
+      operationId: updatePerson
+      summary: Обновить физическое лицо
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePersonRequest' }
+      responses:
+        '200':
+          description: Обновлен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EmailConflict' }
+    delete:
+      tags: [persons]
+      operationId: deletePerson
+      summary: Удалить физическое лицо (каскад person_company_links)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204':
+          description: Удалён
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/companies:
+    post:
+      tags: [companies]
+      operationId: createCompany
+      summary: Создать организацию с привязкой к Person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyRequest'
+      responses:
+        '201':
+          description: Создана
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+              description: /api/v1/companies/{id}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/InnConflict' }
+    get:
+      tags: [companies]
+      operationId: listCompanies
+      summary: Пагинированный список организаций
+      parameters:
+        - { name: name, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Страница Company
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/CompanyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /api/v1/companies/{id}:
+    get:
+      tags: [companies]
+      operationId: getCompanyById
+      summary: Получить организацию по ID (включая вложенных Persons)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [companies]
+      operationId: updateCompany
+      summary: Обновить данные организации
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCompanyRequest' }
+      responses:
+        '200':
+          description: Обновлена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': {$ref: '#/components/responses/InnConflict'}
+    delete:
+      tags: [companies]
+      operationId: deleteCompany
+      summary: Удалить организацию (каскад person_company_links)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204':
+          description: Удалена
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CompanyHasLinks' }
+
+  /api/v1/persons/{id}/companies/{companyId}:
+    post:
+      tags: [links]
+      operationId: createPersonCompanyLink
+      summary: Связать организацию и  и физическое лицо
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: companyId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '201':
+          description: Создана
+          headers:
+            location:
+              schema: { type: string, format: uri }
+              description: /api/v1/persons/{id}/companies/{companyId}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LinkResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/LinkConflict' }
+    delete:
+      tags: [ links ]
+      operationId: deletePersonCompanyLink
+      summary: Удалить связь организации с физическим лицом
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: companyId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204':
+          description: Удалена
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  schemas:
+    CreatePersonRequest:
+      type: object
+      required: [fullName, email]
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, maxLength: 50, nullable: true }
+
+    UpdatePersonRequest:
+      type: object
+      required: [fullName, email]
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, maxLength: 50, nullable: true }
+
+    PersonResponse:
+      type: object
+      required: [id, fullName, email, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreateCompanyRequest:
+      type: object
+      required: [name, inn, personId, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        inn: { type: string, minLength: 10, maxLength: 12, pattern: '^\d+$' }
+        personId: { type: string, format: uuid }
+        role: { type: string, description: Роль в компании, pattern: '^(OWNER|EMPLOYEE)$' }
+        title: { type: string, maxLength: 100,  nullable: true, description: Должность в компании (опционально) }
+
+    UpdateCompanyRequest:
+      type: object
+      required: [name, inn]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        inn: { type: string, minLength: 10, maxLength: 12, pattern: '^\d+$' }
+
+    PersonWithRole:
+      type: object
+      required: [id, fullName, email, role]
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        role: { type: string, description: Роль в компании, pattern: '^(OWNER|EMPLOYEE)$' }
+        title: { type: string, nullable: true}
+
+    CompanyResponse:
+      type: object
+      required: [ id, name, persons, createdAt ]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        persons:
+          type: array
+          items: { $ref: '#/components/schemas/PersonWithRole' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    LinkResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        personId: { type: string, format: uuid }
+        companyId: { type: string, format: uuid }
+        role: { type: string, description: Роль в компании, pattern: '^(OWNER|EMPLOYEE)$' }
+        title: { type: string, maxLength: 100, nullable: true, description: Должность в компании (опционально) }
+        createdAt: { type: string, format: date-time }
+
+    CreateLinkRequest:
+      type: object
+      required: [ role ]
+      properties:
+        role: { type: string, description: Роль в компании, pattern: '^(OWNER|EMPLOYEE)$' }
+        title: { type: string, maxLength: 100,  nullable: true, description: Должность в компании (опционально) }
+
+    PageResponse:
+      type: object
+      required: [ content, page, size, totalElements, totalPages ]
+      properties:
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+
+    Problem:
+      type: object
+      description: RFC 7807 Problem Details (см. _shared/error-standard.md)
+      required: [type, title, status, errorCode]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI идентифицирующий тип ошибки
+        title:
+          type: string
+          description: Краткое описание
+        status:
+          type: integer
+          description: HTTP статус код
+        detail:
+          type: string
+          description: Детальное описание
+        instance:
+          type: string
+          description: URI запроса, вызвавшего ошибку
+        errorCode:
+          type: string
+          description: Машинный код ошибки (CRM стандарт)
+        service:
+          type: string
+          description: Имя сервиса, вернувшего ошибку
+        timestamp:
+          type: string
+          format: date-time
+          description: Время ошибки в формате ISO 8601
+        traceId:
+          type: string
+          format: uuid
+          description: Correlation ID для трассировки
+
+  responses:
+    BadRequest:
+      description: Validation failed (errorCode=VALIDATION_ERROR)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Ресурс не найден (пример errorCode=PERSON_NOT_FOUND)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    EmailConflict:
+      description: Email уже существует (errorCode=PERSON_EMAIL_CONFLICT)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InnConflict:
+      description: ИНН уже существует (errorCode=COMPANY_INN_CONFLICT)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem'}
+    LinkConflict:
+      description: Связь уже существует (errorCode=LINK_ALREADY_EXISTS)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    CompanyHasLinks:
+      description: Компания имеет сотрудников (errorCode=COMPANY_HAS_LINKS)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

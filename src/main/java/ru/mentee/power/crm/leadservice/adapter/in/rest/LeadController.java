@@ -46,7 +46,9 @@ public class LeadController implements LeadApi {
             request.getTitle(),
             request.getDescription(),
             request.getPersonId(),
-            request.getSource());
+            request.getSource(),
+            request.getEmail(),
+            request.getFullName());
     LeadResponse response = leadMapper.toResponse(lead);
     return ResponseEntity.created(URI.create("/api/v1/leads/" + lead.getId())).body(response);
   }
