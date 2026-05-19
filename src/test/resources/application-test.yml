@@ -9,3 +9,7 @@ spring:
   liquibase:
     enabled: true
 
+app:
+  contact-service:
+    url: http://localhost:${WIREMOCK_PORT:8083}
+

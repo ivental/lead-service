@@ -10,7 +10,7 @@ servers:
     description: External access через api-gateway
 
 tags:
-  - name: persons
+  - name: Persons
     description: CRUD операций с физическими лицами
   - name: companies
     description: CRUD операций с организациями

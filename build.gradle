@@ -139,10 +139,30 @@ task generateContactServiceClient(type: org.openapitools.generator.gradle.plugin
             interfaceOnly         : 'true',
             useSpringBoot3        : 'true',
             openApiNullable       : 'false',
-            dateLibrary           : 'java8-localdatetime'
+            dateLibrary           : 'java8-localdatetime',
+            useTags          : "true",
+            apiNameSuffix         : 'Api'
     ]
 }
 
+task generateContactServiceFeignClient(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "${projectDir}/src/main/resources/api/contact-service-v3.yaml".replace('\\', '/')
+    outputDir = "${buildDir}/generated/openapi/feign"
+    apiPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.feign"
+    modelPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.dto"
+    configOptions = [
+            interfaceOnly    : "true",
+            useSpringBoot3   : "true",
+            useTags          : "true",
+            openApiNullable  : "false",
+            dateLibrary      : "java8-localdatetime",
+            useSwaggerUI     : "false",
+            useSpringCloud   : "true",
+            useBeanValidation: "true",
+            apiNameSuffix    : "Api"
+    ]
+}
 // ---- Подключить сгенерированные файлы ----
 sourceSets {
     main {
@@ -157,7 +177,7 @@ clean {
     delete "${buildDir}/generated"
 }
 
-compileJava.dependsOn tasks.openApiGenerate, tasks.generateContactServiceClient
+compileJava.dependsOn tasks.openApiGenerate, tasks.generateContactServiceClient,tasks.generateContactServiceFeignClient
 
 // ---- MapStruct + Lombok настройки ----
 tasks.withType(JavaCompile).configureEach {

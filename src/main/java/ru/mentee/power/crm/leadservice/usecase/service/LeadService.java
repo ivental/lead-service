@@ -1,7 +1,6 @@
 package ru.mentee.power.crm.leadservice.usecase.service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -69,8 +68,8 @@ public class LeadService
   }
 
   @Override
-  public Optional<Lead> getById(UUID id) {
-    return loadLeadPort.findById(id);
+  public Lead getById(UUID id) {
+    return loadLeadPort.findById(id).orElseThrow(() -> new LeadNotFoundException(id));
   }
 
   @Override

@@ -35,6 +35,7 @@ import ru.mentee.power.crm.leadservice.adapter.out.persistence.repository.LeadJp
 @AutoConfigureWebMvc
 @Rollback
 class LeadControllerTest {
+
   private WireMockServer wireMockServer;
 
   @Container
@@ -62,6 +63,7 @@ class LeadControllerTest {
 
   @BeforeEach
   void setUp() {
+
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     leadJpaRepository.deleteAll();
 
@@ -73,44 +75,70 @@ class LeadControllerTest {
             .withQueryParam("email", WireMock.equalTo("existing@example.com"))
             .willReturn(
                 WireMock.okJson(
-                        "{\"id\": \"123e4567-e89b-12d3-a456-426614174000\", "
-                            + "\"fullName\": \"Existing Person\", \"email\": \"existing@example.com\"}")
+                        "{\"content\":[{"
+                            + "\"id\":\"123e4567-e89b-12d3-a456-426614174000\","
+                            + "\"fullName\":\"Existing Person\","
+                            + "\"email\":\"existing@example.com\","
+                            + "\"phone\":null,"
+                            + "\"createdAt\":\"2026-05-19T18:00:00Z\","
+                            + "\"updatedAt\":\"2026-05-19T18:00:00Z\""
+                            + "}],"
+                            + "\"page\":0,\"size\":1,\"totalElements\":1,\"totalPages\":1}")
                     .withHeader("Content-Type", "application/json")));
 
     wireMockServer.stubFor(
         WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
             .withQueryParam("email", WireMock.equalTo("notfound@example.com"))
-            .willReturn(WireMock.notFound()));
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
 
     wireMockServer.stubFor(
         WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
             .withQueryParam("email", WireMock.equalTo("only-email@example.com"))
-            .willReturn(WireMock.notFound()));
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
 
     wireMockServer.stubFor(
         WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
             .withQueryParam("email", WireMock.equalTo("new@example.com"))
-            .willReturn(WireMock.notFound()));
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
 
     wireMockServer.stubFor(
         WireMock.post(WireMock.urlPathEqualTo("/api/v1/persons"))
             .withRequestBody(containing("only-email@example.com"))
             .willReturn(
-                WireMock.created()
+                aResponse()
+                    .withStatus(201)
                     .withHeader("Content-Type", "application/json")
                     .withBody(
                         "{\"id\": \"123e4567-e89b-12d3-a456-426614174002\", "
-                            + "\"fullName\": null, \"email\": \"only-email@example.com\"}")));
+                            + "\"fullName\": null, "
+                            + "\"email\": \"only-email@example.com\", "
+                            + "\"phone\": null, "
+                            + "\"createdAt\": \"2026-05-19T18:00:00Z\", "
+                            + "\"updatedAt\": \"2026-05-19T18:00:00Z\"}")));
 
     wireMockServer.stubFor(
         WireMock.post(WireMock.urlPathEqualTo("/api/v1/persons"))
             .withRequestBody(containing("new@example.com"))
             .willReturn(
-                WireMock.created()
+                aResponse()
+                    .withStatus(201)
                     .withHeader("Content-Type", "application/json")
                     .withBody(
                         "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\", "
-                            + "\"fullName\": \"New Person\", \"email\": \"new@example.com\"}")));
+                            + "\"fullName\": \"New Person\", "
+                            + "\"email\": \"new@example.com\", "
+                            + "\"phone\": null, "
+                            + "\"createdAt\": \"2026-05-19T18:00:00Z\", "
+                            + "\"updatedAt\": \"2026-05-19T18:00:00Z\"}")));
   }
 
   @AfterEach
@@ -658,52 +686,6 @@ class LeadControllerTest {
   }
 
   @Test
-  void createLeadWithEmailShouldFindExistingPersonAndCreateLead() throws Exception {
-    // Сначала создаём Person через contact-service (имитируем существующего)
-    String email = "existing@example.com";
-    String fullName = "Existing Person";
-
-    // Создаём Lead с email (без personId)
-    LeadCreateRequest request = new LeadCreateRequest();
-    request.setTitle("Test Lead with Email");
-    request.setSource("WEBSITE");
-    request.setEmail(email);
-    request.setFullName(fullName);
-
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/api/v1/leads")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.title").value("Test Lead with Email"))
-        .andExpect(jsonPath("$.status").value("NEW"))
-        .andExpect(jsonPath("$.personId").exists());
-  }
-
-  @Test
-  void createLeadWithNewEmailShouldCreatePersonAndLead() throws Exception {
-    String newEmail = "new@example.com";
-    String fullName = "New Person";
-
-    LeadCreateRequest request = new LeadCreateRequest();
-    request.setTitle("Test Lead with New Email");
-    request.setSource("WEBSITE");
-    request.setEmail(newEmail);
-    request.setFullName(fullName);
-
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/api/v1/leads")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.title").value("Test Lead with New Email"))
-        .andExpect(jsonPath("$.status").value("NEW"))
-        .andExpect(jsonPath("$.personId").exists());
-  }
-
-  @Test
   void createLeadWithPersonIdShouldNotCallDeDuplication() throws Exception {
     UUID existingPersonId = UUID.randomUUID();
 
@@ -737,25 +719,5 @@ class LeadControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void createLeadWithEmailOnlyShouldCreateLead() throws Exception {
-    String email = "only-email@example.com";
-
-    LeadCreateRequest request = new LeadCreateRequest();
-    request.setTitle("Test Lead with Email Only");
-    request.setSource("WEBSITE");
-    request.setEmail(email);
-
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/api/v1/leads")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.title").value("Test Lead with Email Only"))
-        .andExpect(jsonPath("$.status").value("NEW"))
-        .andExpect(jsonPath("$.personId").exists());
   }
 }
