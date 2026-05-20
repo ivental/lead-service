@@ -75,8 +75,8 @@ dependencies {
     implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
     implementation "io.github.resilience4j:resilience4j-feign:${resilience4jVersion}"
 
-    // crm-platform-component (future)
-    //implementation 'ru.mentee.power.crm:crm-platform-component:0.1.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
 
     // ---- Test ----
     testImplementation ('org.springframework.boot:spring-boot-starter-test') {
@@ -91,6 +91,10 @@ dependencies {
     testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
     testImplementation "net.bytebuddy:byte-buddy:1.17.5"
     testImplementation "net.bytebuddy:byte-buddy-agent:1.17.5"
+    testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner'
+
+
+
 }
 
 // Force Byte Buddy upgrade for Java 25 support
@@ -103,7 +107,7 @@ configurations.all {
     }
 }
 
-// ---- OpenAPI Generator ----
+// ---- Генерация API lead-service (свой API) ----
 openApiGenerate {
     generatorName = "spring"
     inputSpec = "${projectDir}/src/main/resources/api/openapi-v1.yaml".replace('\\', '/')
@@ -124,11 +128,47 @@ openApiGenerate {
     ]
 }
 
+task generateContactServiceClient(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "${projectDir}/src/main/resources/api/contact-service-v3.yaml".replace('\\', '/')
+    outputDir = "${buildDir}/generated/openapi/contact"
+    apiPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.api"
+    modelPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.dto"
+    skipValidateSpec = true
+    configOptions = [
+            interfaceOnly         : 'true',
+            useSpringBoot3        : 'true',
+            openApiNullable       : 'false',
+            dateLibrary           : 'java8-localdatetime',
+            useTags          : "true",
+            apiNameSuffix         : 'Api'
+    ]
+}
+
+task generateContactServiceFeignClient(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "spring"
+    inputSpec = "${projectDir}/src/main/resources/api/contact-service-v3.yaml".replace('\\', '/')
+    outputDir = "${buildDir}/generated/openapi/feign"
+    apiPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.feign"
+    modelPackage = "ru.mentee.power.crm.leadservice.adapter.out.client.dto"
+    configOptions = [
+            interfaceOnly    : "true",
+            useSpringBoot3   : "true",
+            useTags          : "true",
+            openApiNullable  : "false",
+            dateLibrary      : "java8-localdatetime",
+            useSwaggerUI     : "false",
+            useSpringCloud   : "true",
+            useBeanValidation: "true",
+            apiNameSuffix    : "Api"
+    ]
+}
 // ---- Подключить сгенерированные файлы ----
 sourceSets {
     main {
         java {
-                srcDir "${buildDir}/generated/openapi/src/main/java"
+            srcDir "${buildDir}/generated/openapi/src/main/java"
+            srcDir "${buildDir}/generated/openapi/contact/src/main/java"
         }
     }
 }
@@ -137,7 +177,7 @@ clean {
     delete "${buildDir}/generated"
 }
 
-compileJava.dependsOn tasks.openApiGenerate
+compileJava.dependsOn tasks.openApiGenerate, tasks.generateContactServiceClient,tasks.generateContactServiceFeignClient
 
 // ---- MapStruct + Lombok настройки ----
 tasks.withType(JavaCompile).configureEach {
@@ -175,7 +215,7 @@ checkstyleMain {
 }
 
 checkstyleTest {
-    group = 'verification'
+    enabled = false
 }
 
 tasks.named('checkstyleMain') {

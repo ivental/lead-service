@@ -1,7 +1,6 @@
 package ru.mentee.power.crm.leadservice.usecase.service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +17,7 @@ import ru.mentee.power.crm.leadservice.usecase.port.in.DeleteLeadUseCase;
 import ru.mentee.power.crm.leadservice.usecase.port.in.GetLeadUseCase;
 import ru.mentee.power.crm.leadservice.usecase.port.in.ListLeadsByStatusUseCase;
 import ru.mentee.power.crm.leadservice.usecase.port.in.UpdateLeadUseCase;
+import ru.mentee.power.crm.leadservice.usecase.port.out.ContactClientPort;
 import ru.mentee.power.crm.leadservice.usecase.port.out.DeleteLeadPort;
 import ru.mentee.power.crm.leadservice.usecase.port.out.LoadByStatusPort;
 import ru.mentee.power.crm.leadservice.usecase.port.out.LoadLeadPort;
@@ -39,20 +39,37 @@ public class LeadService
   private final LoadByStatusPort loadByStatusPort;
   private final DeleteLeadPort deleteLeadPort;
   private final SaveStatusHistoryPort saveStatusHistoryPort;
+  private final ContactClientPort contactClientPort;
 
   @Override
   @Transactional
-  public Lead create(String title, String description, UUID personId, String source) {
-    if (personId == null) {
-      throw new IllegalArgumentException("personId is required");
-    }
-    Lead lead = Lead.createNew(title, description, personId, source);
+  public Lead create(
+      String title,
+      String description,
+      UUID personId,
+      String source,
+      String email,
+      String fullName) {
+    UUID resolvedPersonId = resolvePersonId(personId, email, fullName);
+    Lead lead = Lead.createNew(title, description, resolvedPersonId, source);
     return saveLeadPort.save(lead);
   }
 
+  private UUID resolvePersonId(UUID personId, String email, String fullName) {
+    if (personId != null) {
+      return personId;
+    }
+    if (email != null && !email.isBlank()) {
+      return contactClientPort
+          .findPersonIdByEmail(email)
+          .orElseGet(() -> contactClientPort.createPerson(email, fullName));
+    }
+    throw new IllegalArgumentException("Either personId or email is required");
+  }
+
   @Override
-  public Optional<Lead> getById(UUID id) {
-    return loadLeadPort.findById(id);
+  public Lead getById(UUID id) {
+    return loadLeadPort.findById(id).orElseThrow(() -> new LeadNotFoundException(id));
   }
 
   @Override

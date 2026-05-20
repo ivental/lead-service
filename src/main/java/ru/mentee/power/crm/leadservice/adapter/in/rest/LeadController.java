@@ -18,7 +18,6 @@ import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadResponse;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadStatus;
 import ru.mentee.power.crm.leadservice.adapter.in.rest.dto.LeadUpdateRequest;
 import ru.mentee.power.crm.leadservice.adapter.mapper.LeadMapper;
-import ru.mentee.power.crm.leadservice.domain.exception.LeadNotFoundException;
 import ru.mentee.power.crm.leadservice.domain.model.Lead;
 import ru.mentee.power.crm.leadservice.usecase.port.in.ChangeStatusUseCase;
 import ru.mentee.power.crm.leadservice.usecase.port.in.CreateLeadUseCase;
@@ -46,14 +45,16 @@ public class LeadController implements LeadApi {
             request.getTitle(),
             request.getDescription(),
             request.getPersonId(),
-            request.getSource());
+            request.getSource(),
+            request.getEmail(),
+            request.getFullName());
     LeadResponse response = leadMapper.toResponse(lead);
     return ResponseEntity.created(URI.create("/api/v1/leads/" + lead.getId())).body(response);
   }
 
   @Override
   public ResponseEntity<LeadResponse> getLeadById(UUID id) {
-    Lead lead = getLeadUseCase.getById(id).orElseThrow(() -> new LeadNotFoundException(id));
+    Lead lead = getLeadUseCase.getById(id);
     return ResponseEntity.ok(leadMapper.toResponse(lead));
   }
 

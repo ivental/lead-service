@@ -1,15 +1,14 @@
 package ru.mentee.power.crm.leadservice.adapter.in.rest;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +19,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -36,6 +36,8 @@ import ru.mentee.power.crm.leadservice.adapter.out.persistence.repository.LeadJp
 @Rollback
 class LeadControllerTest {
 
+  private WireMockServer wireMockServer;
+
   @Container
   static PostgreSQLContainer<?> postgres =
       new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"))
@@ -48,6 +50,7 @@ class LeadControllerTest {
     registry.add("spring.datasource.url", postgres::getJdbcUrl);
     registry.add("spring.datasource.username", postgres::getUsername);
     registry.add("spring.datasource.password", postgres::getPassword);
+    registry.add("app.contact-service.url", () -> "http://localhost:8083");
   }
 
   @Autowired private WebApplicationContext webApplicationContext;
@@ -60,8 +63,89 @@ class LeadControllerTest {
 
   @BeforeEach
   void setUp() {
+
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     leadJpaRepository.deleteAll();
+
+    wireMockServer = new WireMockServer(8083);
+    wireMockServer.start();
+
+    wireMockServer.stubFor(
+        WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withQueryParam("email", WireMock.equalTo("existing@example.com"))
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[{"
+                            + "\"id\":\"123e4567-e89b-12d3-a456-426614174000\","
+                            + "\"fullName\":\"Existing Person\","
+                            + "\"email\":\"existing@example.com\","
+                            + "\"phone\":null,"
+                            + "\"createdAt\":\"2026-05-19T18:00:00Z\","
+                            + "\"updatedAt\":\"2026-05-19T18:00:00Z\""
+                            + "}],"
+                            + "\"page\":0,\"size\":1,\"totalElements\":1,\"totalPages\":1}")
+                    .withHeader("Content-Type", "application/json")));
+
+    wireMockServer.stubFor(
+        WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withQueryParam("email", WireMock.equalTo("notfound@example.com"))
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
+
+    wireMockServer.stubFor(
+        WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withQueryParam("email", WireMock.equalTo("only-email@example.com"))
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
+
+    wireMockServer.stubFor(
+        WireMock.get(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withQueryParam("email", WireMock.equalTo("new@example.com"))
+            .willReturn(
+                WireMock.okJson(
+                        "{\"content\":[],\"page\":0,\"size\":0,\"totalElements\":0,\"totalPages\":0}")
+                    .withHeader("Content-Type", "application/json")));
+
+    wireMockServer.stubFor(
+        WireMock.post(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withRequestBody(containing("only-email@example.com"))
+            .willReturn(
+                aResponse()
+                    .withStatus(201)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        "{\"id\": \"123e4567-e89b-12d3-a456-426614174002\", "
+                            + "\"fullName\": null, "
+                            + "\"email\": \"only-email@example.com\", "
+                            + "\"phone\": null, "
+                            + "\"createdAt\": \"2026-05-19T18:00:00Z\", "
+                            + "\"updatedAt\": \"2026-05-19T18:00:00Z\"}")));
+
+    wireMockServer.stubFor(
+        WireMock.post(WireMock.urlPathEqualTo("/api/v1/persons"))
+            .withRequestBody(containing("new@example.com"))
+            .willReturn(
+                aResponse()
+                    .withStatus(201)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\", "
+                            + "\"fullName\": \"New Person\", "
+                            + "\"email\": \"new@example.com\", "
+                            + "\"phone\": null, "
+                            + "\"createdAt\": \"2026-05-19T18:00:00Z\", "
+                            + "\"updatedAt\": \"2026-05-19T18:00:00Z\"}")));
+  }
+
+  @AfterEach
+  void tearDown() {
+    if (wireMockServer != null) {
+      wireMockServer.stop();
+    }
   }
 
   @Test
@@ -73,7 +157,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            post("/api/v1/leads")
+            MockMvcRequestBuilders.post("/api/v1/leads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -90,7 +174,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            post("/api/v1/leads")
+            MockMvcRequestBuilders.post("/api/v1/leads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -104,7 +188,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            post("/api/v1/leads")
+            MockMvcRequestBuilders.post("/api/v1/leads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -120,7 +204,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -132,7 +216,7 @@ class LeadControllerTest {
     UUID leadId = createdLead.getId();
 
     mockMvc
-        .perform(get("/api/v1/leads/" + leadId))
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads/" + leadId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(leadId.toString()))
         .andExpect(jsonPath("$.title").value("Test Lead"));
@@ -140,7 +224,9 @@ class LeadControllerTest {
 
   @Test
   void getLeadByIdWithNonExistingIdShouldReturn404() throws Exception {
-    mockMvc.perform(get("/api/v1/leads/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    mockMvc
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -153,7 +239,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -168,7 +254,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            put("/api/v1/leads/" + leadId)
+            MockMvcRequestBuilders.put("/api/v1/leads/" + leadId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateJson))
         .andExpect(status().isOk())
@@ -186,7 +272,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -201,7 +287,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            put("/api/v1/leads/" + leadId)
+            MockMvcRequestBuilders.put("/api/v1/leads/" + leadId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateJson))
         .andExpect(status().isBadRequest());
@@ -213,7 +299,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            put("/api/v1/leads/" + UUID.randomUUID())
+            MockMvcRequestBuilders.put("/api/v1/leads/" + UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateJson))
         .andExpect(status().isNotFound());
@@ -229,7 +315,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -240,14 +326,20 @@ class LeadControllerTest {
     LeadResponse createdLead = objectMapper.readValue(response, LeadResponse.class);
     UUID leadId = createdLead.getId();
 
-    mockMvc.perform(delete("/api/v1/leads/" + leadId)).andExpect(status().isNoContent());
+    mockMvc
+        .perform(MockMvcRequestBuilders.delete("/api/v1/leads/" + leadId))
+        .andExpect(status().isNoContent());
 
-    mockMvc.perform(get("/api/v1/leads/" + leadId)).andExpect(status().isNotFound());
+    mockMvc
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads/" + leadId))
+        .andExpect(status().isNotFound());
   }
 
   @Test
   void deleteLeadWithNonExistingIdShouldReturn404() throws Exception {
-    mockMvc.perform(delete("/api/v1/leads/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    mockMvc
+        .perform(MockMvcRequestBuilders.delete("/api/v1/leads/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -260,7 +352,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -276,7 +368,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(statusJson))
         .andExpect(status().isConflict());
@@ -288,7 +380,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + UUID.randomUUID() + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + UUID.randomUUID() + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(statusJson))
         .andExpect(status().isNotFound());
@@ -304,7 +396,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -319,7 +411,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(statusJson))
         .andExpect(status().isOk())
@@ -336,7 +428,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -349,14 +441,14 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{ \"status\": \"CONTACTED\" }"))
         .andExpect(status().isOk());
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{ \"status\": \"QUALIFIED\" }"))
         .andExpect(status().isConflict());
@@ -372,7 +464,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -387,7 +479,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidStatusJson))
         .andExpect(status().isBadRequest());
@@ -404,7 +496,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -419,7 +511,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            put("/api/v1/leads/" + leadId)
+            MockMvcRequestBuilders.put("/api/v1/leads/" + leadId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateJson))
         .andExpect(status().isOk())
@@ -437,7 +529,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -452,7 +544,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            put("/api/v1/leads/" + leadId)
+            MockMvcRequestBuilders.put("/api/v1/leads/" + leadId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(updateJson))
         .andExpect(status().isBadRequest());
@@ -468,7 +560,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -483,7 +575,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(malformedJson))
         .andExpect(status().isBadRequest());
@@ -499,7 +591,7 @@ class LeadControllerTest {
     String response =
         mockMvc
             .perform(
-                post("/api/v1/leads")
+                MockMvcRequestBuilders.post("/api/v1/leads")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)))
             .andExpect(status().isCreated())
@@ -512,7 +604,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            patch("/api/v1/leads/" + leadId + "/status")
+            MockMvcRequestBuilders.patch("/api/v1/leads/" + leadId + "/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{ \"status\": \"DISQUALIFIED\" }"))
         .andExpect(status().isOk())
@@ -527,7 +619,7 @@ class LeadControllerTest {
     }
 
     mockMvc
-        .perform(get("/api/v1/leads"))
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(20))
         .andExpect(jsonPath("$.page").value(0))
@@ -544,7 +636,7 @@ class LeadControllerTest {
     }
 
     mockMvc
-        .perform(get("/api/v1/leads").param("page", "1").param("size", "5"))
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads").param("page", "1").param("size", "5"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(5))
         .andExpect(jsonPath("$.page").value(1))
@@ -559,7 +651,8 @@ class LeadControllerTest {
     createTestLead("Test Lead", "WEBSITE", personId);
 
     mockMvc
-        .perform(get("/api/v1/leads").param("page", "10").param("size", "10"))
+        .perform(
+            MockMvcRequestBuilders.get("/api/v1/leads").param("page", "10").param("size", "10"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(0))
         .andExpect(jsonPath("$.page").value(10))
@@ -575,7 +668,7 @@ class LeadControllerTest {
 
     mockMvc
         .perform(
-            post("/api/v1/leads")
+            MockMvcRequestBuilders.post("/api/v1/leads")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated());
@@ -584,11 +677,47 @@ class LeadControllerTest {
   @Test
   void listLeadsWithEmptyDatabaseShouldReturnEmptyPage() throws Exception {
     mockMvc
-        .perform(get("/api/v1/leads"))
+        .perform(MockMvcRequestBuilders.get("/api/v1/leads"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(0))
         .andExpect(jsonPath("$.page").value(0))
         .andExpect(jsonPath("$.totalElements").value(0))
         .andExpect(jsonPath("$.totalPages").value(0));
+  }
+
+  @Test
+  void createLeadWithPersonIdShouldNotCallDeDuplication() throws Exception {
+    UUID existingPersonId = UUID.randomUUID();
+
+    LeadCreateRequest request = new LeadCreateRequest();
+    request.setTitle("Test Lead with PersonId");
+    request.setSource("WEBSITE");
+    request.setPersonId(existingPersonId);
+    request.setEmail("should-be-ignored@example.com");
+    request.setFullName("Should Be Ignored");
+
+    mockMvc
+        .perform(
+            MockMvcRequestBuilders.post("/api/v1/leads")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.title").value("Test Lead with PersonId"))
+        .andExpect(jsonPath("$.status").value("NEW"))
+        .andExpect(jsonPath("$.personId").value(existingPersonId.toString()));
+  }
+
+  @Test
+  void createLeadWithoutPersonIdAndEmailShouldReturn400() throws Exception {
+    LeadCreateRequest request = new LeadCreateRequest();
+    request.setTitle("Test Lead");
+    request.setSource("WEBSITE");
+
+    mockMvc
+        .perform(
+            MockMvcRequestBuilders.post("/api/v1/leads")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
   }
 }

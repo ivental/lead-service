@@ -33,3 +33,13 @@ management:
 logging:
   level:
     ru.mentee.power.crm: DEBUG
+app:
+  contact-service:
+    url: ${CONTACT_SERVICE_URL:http://localhost:8083}
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
